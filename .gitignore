@@ -5,3 +5,5 @@ bot.db
 .env
 venv/
 .venv/
+config.py
+tg-bot.md
