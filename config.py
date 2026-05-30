@@ -1,4 +1,4 @@
-BOT_TOKEN = "token"
+BOT_TOKEN = "Ваш токен от бота"
 OWNER_ID = 123456789
 DB_NAME = "bot.db"
 WARN_LIMIT = 3
