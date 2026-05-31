@@ -155,12 +155,12 @@ def build_help(role):
                   "/warnings @user"]
     if role_level(role) >= ROLES["admin"]:
         lines += ["\n<b>Администратор и выше:</b>",
-                  "/ban @user причина",
+                  "/ban @user время причина",
                   "/unban @user",
                   "/kick @user причина",
                   "/clear количество",
                   "/admins",
-                  "/antireklama — настройка антирекламы"]
+                  "/antiadvertising — настройка антирекламы"]
     if role_level(role) >= ROLES["owner"]:
         lines += ["\n<b>Только владелец:</b>",
                   "/addadmin @user",

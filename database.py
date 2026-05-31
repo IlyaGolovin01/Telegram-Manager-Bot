@@ -1,30 +1,10 @@
 import sqlite3
 import threading
-import time
 from datetime import datetime
 
 import config
 
-db_lock = threading.Lock()
-
-_CACHE_TTL = 30
-_role_cache = {}
-_ar_cache = {}
-
-
-def _cache_get(cache, key, ttl=_CACHE_TTL):
-    v = cache.get(key)
-    if v is not None and time.time() - v[1] < ttl:
-        return v[0]
-    return None
-
-
-def _cache_set(cache, key, value):
-    cache[key] = (value, time.time())
-
-
-def _cache_del(cache, key):
-    cache.pop(key, None)
+db_lock = threading.RLock()
 
 
 def get_connection():
@@ -79,7 +59,7 @@ def init_db():
                 )"""
             )
             cur.execute(
-                """CREATE TABLE IF NOT EXISTS antireklama_settings (
+                """CREATE TABLE IF NOT EXISTS anti_advertising_settings (
                     chat_id INTEGER PRIMARY KEY,
                     enabled INTEGER NOT NULL DEFAULT 0,
                     block_links INTEGER NOT NULL DEFAULT 1,
@@ -132,24 +112,14 @@ def set_role(user_id, role):
             cur = conn.cursor()
             cur.execute("UPDATE users SET role = ? WHERE user_id = ?", (role, user_id))
             conn.commit()
-            invalidate_role(user_id)
             return cur.rowcount > 0
         finally:
             conn.close()
 
 
 def get_role(user_id):
-    cached = _cache_get(_role_cache, user_id)
-    if cached is not None:
-        return cached
     user = get_user(user_id)
-    role = user["role"] if user else "user"
-    _cache_set(_role_cache, user_id, role)
-    return role
-
-
-def invalidate_role(user_id):
-    _cache_del(_role_cache, user_id)
+    return user["role"] if user else "user"
 
 
 def ensure_owner():
@@ -344,32 +314,27 @@ def get_all_chats():
 _AR_DEFAULTS = {"chat_id": 0, "enabled": 0, "block_links": 1, "block_forwards": 1, "action": "delete", "warn_on_violation": 0}
 
 
-def get_antireklama_settings(chat_id):
-    cached = _cache_get(_ar_cache, chat_id, ttl=15)
-    if cached is not None:
-        return cached
+def get_anti_advertising_settings(chat_id):
     with db_lock:
         conn = get_connection()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM antireklama_settings WHERE chat_id = ?", (chat_id,))
+            cur.execute("SELECT * FROM anti_advertising_settings WHERE chat_id = ?", (chat_id,))
             row = cur.fetchone()
-            settings = dict(row) if row else {**_AR_DEFAULTS, "chat_id": chat_id}
-            _cache_set(_ar_cache, chat_id, settings)
-            return settings
+            return dict(row) if row else {**_AR_DEFAULTS, "chat_id": chat_id}
         finally:
             conn.close()
 
 
-def upsert_antireklama(chat_id, **kwargs):
+def upsert_anti_advertising(chat_id, **kwargs):
     with db_lock:
         conn = get_connection()
         try:
             cur = conn.cursor()
-            row = get_antireklama_settings(chat_id)
+            row = get_anti_advertising_settings(chat_id)
             row.update(kwargs)
             cur.execute(
-                """INSERT INTO antireklama_settings (chat_id, enabled, block_links, block_forwards, action, warn_on_violation)
+                """INSERT INTO anti_advertising_settings (chat_id, enabled, block_links, block_forwards, action, warn_on_violation)
                    VALUES (?, ?, ?, ?, ?, ?)
                    ON CONFLICT(chat_id) DO UPDATE SET
                    enabled = excluded.enabled, block_links = excluded.block_links,
@@ -380,4 +345,3 @@ def upsert_antireklama(chat_id, **kwargs):
             conn.commit()
         finally:
             conn.close()
-    _cache_del(_ar_cache, chat_id)

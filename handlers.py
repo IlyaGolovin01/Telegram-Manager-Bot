@@ -8,9 +8,9 @@ import config
 from bot_instance import bot
 from database import (
     add_chat, add_log, add_user, add_warning, clear_warnings, count_warnings,
-    get_all_chats, get_all_user_ids, get_antireklama_settings, get_role,
+    get_all_chats, get_all_user_ids, get_anti_advertising_settings, get_role,
     get_staff, get_stats, get_user, get_warnings, remove_chat, remove_last_warning,
-    set_role, upsert_antireklama,
+    set_role, upsert_anti_advertising,
 )
 from utils import (
     ROLES, ROLE_TITLES, _TARGET_NOT_FOUND, antispam, build_help, can_act,
@@ -118,7 +118,11 @@ def cmd_mute(message):
             bot.reply_to(message, "⛔️ Вы не можете заглушить этого пользователя.")
             return
         seconds = parse_duration(rest[0]) if rest else None
-        reason = " ".join(rest[1:]) if len(rest) > 1 else "не указана"
+        if seconds is not None:
+            reason = " ".join(rest[1:]) if len(rest) > 1 else "не указана"
+        else:
+            seconds = None
+            reason = " ".join(rest) if rest else "не указана"
         until_date = int(time.time()) + seconds if seconds else None
         bot.restrict_chat_member(
             message.chat.id, target_id, until_date=until_date,
@@ -274,15 +278,22 @@ def cmd_ban(message):
             if disp == _TARGET_NOT_FOUND:
                 bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
-                bot.reply_to(message, "⚠️ <code>/ban @user причина</code>\n💡 Или ответьте на сообщение пользователя.")
+                bot.reply_to(message, "⚠️ <code>/ban @user 1d причина</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         if not can_act(actor, target_id):
             bot.reply_to(message, "⛔️ Вы не можете забанить этого пользователя.")
             return
-        reason = " ".join(rest) if rest else "не указана"
-        bot.ban_chat_member(message.chat.id, target_id)
+        seconds = parse_duration(rest[0]) if rest else None
+        if seconds is not None:
+            reason = " ".join(rest[1:]) if len(rest) > 1 else "не указана"
+        else:
+            seconds = None
+            reason = " ".join(rest) if rest else "не указана"
+        until_date = int(time.time()) + seconds if seconds else None
+        bot.ban_chat_member(message.chat.id, target_id, until_date=until_date)
         add_log(actor, "ban", target_id, reason)
-        bot.reply_to(message, f"🔨 {disp} забанен.\n📝 Причина: {esc(reason)}")
+        duration_str = f" на <b>{format_duration(seconds)}</b>" if seconds else ""
+        bot.reply_to(message, f"🔨 {disp} забанен{duration_str}.\n📝 Причина: {esc(reason)}")
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
     except Exception as e:
@@ -392,15 +403,15 @@ def cmd_admins(message):
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
 
 
-@bot.message_handler(commands=["antireklama"])
-def cmd_antireklama(message):
+@bot.message_handler(commands=["antiadvertising"])
+def cmd_anti_advertising(message):
     try:
         register_message_user(message)
         if not antispam(message.from_user.id) or not require(message, "admin"):
             return
         args = get_args(message)
         chat_id = message.chat.id
-        settings = get_antireklama_settings(chat_id)
+        settings = get_anti_advertising_settings(chat_id)
 
         if not args:
             status = "✅ включена" if settings["enabled"] else "❌ выключена"
@@ -413,41 +424,41 @@ def cmd_antireklama(message):
                 f"🔗 Блокировать ссылки: {links}\n"
                 f"📨 Блокировать репосты: {fwd}\n"
                 f"⚙️ Действие: {actions.get(settings['action'], settings['action'])}\n\n"
-                f"<code>/antireklama on</code> — включить\n"
-                f"<code>/antireklama off</code> — выключить\n"
-                f"<code>/antireklama links on/off</code> — блокировка ссылок\n"
-                f"<code>/antireklama forwards on/off</code> — блокировка репостов\n"
-                f"<code>/antireklama action delete|warn|ban</code> — действие",
+                f"<code>/antiadvertising on</code> — включить\n"
+                f"<code>/antiadvertising off</code> — выключить\n"
+                f"<code>/antiadvertising links on/off</code> — блокировка ссылок\n"
+                f"<code>/antiadvertising forwards on/off</code> — блокировка репостов\n"
+                f"<code>/antiadvertising action delete|warn|ban</code> — действие",
             )
             return
 
         cmd = args[0].lower()
         if cmd == "on":
-            upsert_antireklama(chat_id, enabled=1)
+            upsert_anti_advertising(chat_id, enabled=1)
             bot.reply_to(message, "🛡 Антиреклама <b>включена</b>.")
         elif cmd == "off":
-            upsert_antireklama(chat_id, enabled=0)
+            upsert_anti_advertising(chat_id, enabled=0)
             bot.reply_to(message, "🛡 Антиреклама <b>выключена</b>.")
         elif cmd == "links" and len(args) > 1:
             val = 1 if args[1].lower() in ("on", "1", "yes", "да") else 0
-            upsert_antireklama(chat_id, block_links=val)
+            upsert_anti_advertising(chat_id, block_links=val)
             bot.reply_to(message, f"🔗 Блокировка ссылок: <b>{'включена' if val else 'выключена'}</b>.")
         elif cmd == "forwards" and len(args) > 1:
             val = 1 if args[1].lower() in ("on", "1", "yes", "да") else 0
-            upsert_antireklama(chat_id, block_forwards=val)
+            upsert_anti_advertising(chat_id, block_forwards=val)
             bot.reply_to(message, f"📨 Блокировка репостов: <b>{'включена' if val else 'выключена'}</b>.")
         elif cmd == "action" and len(args) > 1:
             act = args[1].lower()
             if act not in ("delete", "warn", "ban"):
                 bot.reply_to(message, "⚠️ Доступные действия: delete, warn, ban.")
                 return
-            upsert_antireklama(chat_id, action=act)
+            upsert_anti_advertising(chat_id, action=act)
             names = {"delete": "удаление", "warn": "предупреждение", "ban": "бан"}
             bot.reply_to(message, f"⚙️ Действие: <b>{names[act]}</b>.")
         else:
-            bot.reply_to(message, "⚠️ Неверная команда. Используйте <code>/antireklama</code> без аргументов для справки.")
+            bot.reply_to(message, "⚠️ Неверная команда. Используйте <code>/antiadvertising</code> без аргументов для справки.")
     except Exception as e:
-        print(f"[/antireklama] {e}")
+        print(f"[/antiadvertising] {e}")
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
 
 
@@ -632,15 +643,15 @@ def handle_chat_member(update):
         m.chat.id
         and not (m.text and m.text.startswith("/"))
         and role_level(get_role(m.from_user.id)) < ROLES["admin"]
-        and is_ad_message(m, get_antireklama_settings(m.chat.id))
+        and is_ad_message(m, get_anti_advertising_settings(m.chat.id))
     ),
     content_types=["text", "photo", "video", "document", "animation"],
 )
-def handle_antireklama(message):
+def handle_anti_advertising(message):
     try:
         chat_id = message.chat.id
         uid = message.from_user.id
-        settings = get_antireklama_settings(chat_id)
+        settings = get_anti_advertising_settings(chat_id)
         action = settings.get("action", "delete")
 
         try:
@@ -665,7 +676,7 @@ def handle_antireklama(message):
                 bot.send_message(chat_id, f"⚠️ {name} — предупреждение за рекламу (<b>{total}/{config.WARN_LIMIT}</b>).")
 
     except Exception as e:
-        print(f"[antireklama_handler] {e}")
+        print(f"[anti_advertising_handler] {e}")
 
 
 @bot.message_handler(func=lambda m: True, content_types=["text"])
