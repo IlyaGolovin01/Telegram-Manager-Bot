@@ -54,7 +54,7 @@ def cmd_start(message):
         bot.reply_to(
             message,
             f"👋 <b>Привет, {esc(message.from_user.first_name)}!</b>\n\n"
-            "Я бот для управления чатом. Используй /help.\n\n"
+            "Я бот НКВД для управления чатом. Используй /help.\n\n"
             f"Твоя роль: <b>{ROLE_TITLES.get(role)}</b>",
         )
     except Exception as e:
@@ -83,17 +83,17 @@ def cmd_profile(message):
             target_id = message.from_user.id
         row = get_user(target_id)
         if row is None:
-            bot.reply_to(message, "⚠️ Пользователь не найден в базе.")
+            bot.reply_to(message, "⚠️ Товарищ не найден в базе.")
             return
         warns = count_warnings(target_id)
         bot.reply_to(
             message,
-            "📇 <b>Профиль пользователя</b>\n\n"
+            "📇 <b>Личное дело</b>\n\n"
             f"🆔 ID: <code>{row['user_id']}</code>\n"
             f"👤 Имя: {esc(row['first_name'])}\n"
             f"🔗 Username: @{esc(row['username']) if row['username'] else '—'}\n"
             f"🎖 Роль: <b>{ROLE_TITLES.get(row['role'])}</b>\n"
-            f"⚠️ Предупреждений: <b>{warns}/{config.WARN_LIMIT}</b>\n"
+            f"⚠️ Выговоров: <b>{warns}/{config.WARN_LIMIT}</b>\n"
             f"📅 Регистрация: {esc(row['registration_date'])}",
         )
     except Exception as e:
@@ -110,12 +110,12 @@ def cmd_mute(message):
         target_id, disp, rest = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/mute @user 10m причина</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         if not can_act(actor, target_id):
-            bot.reply_to(message, "⛔️ Вы не можете заглушить этого пользователя.")
+            bot.reply_to(message, "⛔️ Вы не можете заткнуть этого товарища.")
             return
         seconds = parse_duration(rest[0]) if rest else None
         if seconds is not None:
@@ -131,8 +131,8 @@ def cmd_mute(message):
         add_log(actor, "mute", target_id, reason)
         bot.reply_to(
             message,
-            f"🔇 {disp} заглушён на <b>{format_duration(seconds)}</b>.\n"
-            f"📝 Причина: {esc(reason)}",
+            f"🔇 {disp} заткнут на <b>{format_duration(seconds)}</b>.\n"
+            f"📝 Статья: {esc(reason)}",
         )
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
@@ -150,7 +150,7 @@ def cmd_unmute(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/unmute @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
@@ -163,7 +163,7 @@ def cmd_unmute(message):
             ),
         )
         add_log(message.from_user.id, "unmute", target_id)
-        bot.reply_to(message, f"🔊 {disp} размучен.")
+        bot.reply_to(message, f"🔊 {disp} получил разрешение говорить.")
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
     except Exception as e:
@@ -181,12 +181,12 @@ def cmd_warn(message):
         target_id, disp, rest = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/warn @user причина</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         if not can_act(actor, target_id):
-            bot.reply_to(message, "⛔️ Вы не можете предупредить этого пользователя.")
+            bot.reply_to(message, "⛔️ Вы не можете вынести выговор этому товарищу.")
             return
         reason = " ".join(rest) if rest else "не указана"
         add_warning(target_id, actor, reason)
@@ -201,13 +201,13 @@ def cmd_warn(message):
             clear_warnings(target_id)
             bot.reply_to(
                 message,
-                f"⚠️ {disp} получил <b>{total}/{config.WARN_LIMIT}</b> предупреждений и 🔨 <b>автоматически забанен</b>.",
+                f"⚠️ {disp} получил <b>{total}/{config.WARN_LIMIT}</b> выговоров и 🔨 <b>расстрелян</b>.",
             )
         else:
             bot.reply_to(
                 message,
-                f"⚠️ {disp} получил предупреждение (<b>{total}/{config.WARN_LIMIT}</b>).\n"
-                f"📝 Причина: {esc(reason)}",
+                f"⚠️ {disp} получил выговор (<b>{total}/{config.WARN_LIMIT}</b>).\n"
+                f"📝 Статья: {esc(reason)}",
             )
     except Exception as e:
         print(f"[/warn] {e}")
@@ -223,7 +223,7 @@ def cmd_unwarn(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/unwarn @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
@@ -231,10 +231,10 @@ def cmd_unwarn(message):
             add_log(message.from_user.id, "unwarn", target_id)
             bot.reply_to(
                 message,
-                f"✅ С {disp} снято предупреждение. Осталось: <b>{count_warnings(target_id)}</b>.",
+                f"✅ С {disp} снят выговор. Осталось: <b>{count_warnings(target_id)}</b>.",
             )
         else:
-            bot.reply_to(message, f"ℹ️ У {disp} нет предупреждений.")
+            bot.reply_to(message, f"ℹ️ У {disp} нет выговоров.")
     except Exception as e:
         print(f"[/unwarn] {e}")
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
@@ -249,15 +249,15 @@ def cmd_warnings(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/warnings @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         warns = get_warnings(target_id)
         if not warns:
-            bot.reply_to(message, f"ℹ️ У {disp} нет предупреждений.")
+            bot.reply_to(message, f"ℹ️ У {disp} нет выговоров.")
             return
-        lines = [f"⚠️ <b>Предупреждения {disp}</b> ({len(warns)}/{config.WARN_LIMIT}):\n"]
+        lines = [f"⚠️ <b>Выговоры {disp}</b> ({len(warns)}/{config.WARN_LIMIT}):\n"]
         for i, w in enumerate(warns, 1):
             lines.append(f"{i}. {esc(w['reason'])} — <i>{esc(w['date'])}</i>")
         bot.reply_to(message, "\n".join(lines))
@@ -276,12 +276,12 @@ def cmd_ban(message):
         target_id, disp, rest = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/ban @user 1d причина</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         if not can_act(actor, target_id):
-            bot.reply_to(message, "⛔️ Вы не можете забанить этого пользователя.")
+            bot.reply_to(message, "⛔️ Вы не можете арестовать этого товарища.")
             return
         seconds = parse_duration(rest[0]) if rest else None
         if seconds is not None:
@@ -293,7 +293,8 @@ def cmd_ban(message):
         bot.ban_chat_member(message.chat.id, target_id, until_date=until_date)
         add_log(actor, "ban", target_id, reason)
         duration_str = f" на <b>{format_duration(seconds)}</b>" if seconds else ""
-        bot.reply_to(message, f"🔨 {disp} забанен{duration_str}.\n📝 Причина: {esc(reason)}")
+        ban_word = "расстрелян" if not seconds else "арестован"
+        bot.reply_to(message, f"🔨 {disp} {ban_word}{duration_str}.\n📝 Статья: {esc(reason)}")
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
     except Exception as e:
@@ -310,13 +311,13 @@ def cmd_unban(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/unban @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         bot.unban_chat_member(message.chat.id, target_id, only_if_banned=True)
         add_log(message.from_user.id, "unban", target_id)
-        bot.reply_to(message, f"✅ {disp} разбанен.")
+        bot.reply_to(message, f"✅ {disp} реабилитирован.")
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
     except Exception as e:
@@ -334,18 +335,18 @@ def cmd_kick(message):
         target_id, disp, rest = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/kick @user причина</code>\n💡 Или ответьте на сообщение пользователя.")
             return
         if not can_act(actor, target_id):
-            bot.reply_to(message, "⛔️ Вы не можете кикнуть этого пользователя.")
+            bot.reply_to(message, "⛔️ Вы не можете депортировать этого товарища.")
             return
         reason = " ".join(rest) if rest else "не указана"
         bot.ban_chat_member(message.chat.id, target_id)
         bot.unban_chat_member(message.chat.id, target_id, only_if_banned=True)
         add_log(actor, "kick", target_id, reason)
-        bot.reply_to(message, f"👢 {disp} кикнут.\n📝 Причина: {esc(reason)}")
+        bot.reply_to(message, f"👢 {disp} депортирован.\n📝 Статья: {esc(reason)}")
     except ApiTelegramException as e:
         bot.reply_to(message, f"❌ Ошибка Telegram: {esc(e.description)}")
     except Exception as e:
@@ -373,7 +374,7 @@ def cmd_clear(message):
             except Exception:
                 pass
         add_log(message.from_user.id, f"clear ({deleted})")
-        bot.send_message(message.chat.id, f"🧹 Удалено сообщений: <b>{deleted}</b>.")
+        bot.send_message(message.chat.id, f"🧹 Конфисковано сообщений: <b>{deleted}</b>.")
     except Exception as e:
         print(f"[/clear] {e}")
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
@@ -387,11 +388,11 @@ def cmd_admins(message):
             return
         staff = get_staff()
         if not staff:
-            bot.reply_to(message, "ℹ️ Администрация не найдена.")
+            bot.reply_to(message, "ℹ️ Номенклатура не найдена.")
             return
         order = {"owner": 0, "admin": 1, "moderator": 2}
         staff = sorted(staff, key=lambda r: order.get(r["role"], 9))
-        lines = ["👮 <b>Администрация чата:</b>\n"]
+        lines = [            "👮 <b>Партийная номенклатура:</b>\n"]
         for r in staff:
             lines.append(
                 f"{ROLE_TITLES.get(r['role'])} — "
@@ -417,7 +418,7 @@ def cmd_anti_advertising(message):
             status = "✅ включена" if settings["enabled"] else "❌ выключена"
             links = "✅" if settings["block_links"] else "❌"
             fwd = "✅" if settings["block_forwards"] else "❌"
-            actions = {"delete": "удаление", "warn": "предупреждение", "ban": "бан"}
+            actions = {"delete": "удаление", "warn": "выговор", "ban": "арест"}
             bot.reply_to(
                 message,
                 f"🛡 <b>Антиреклама</b> — {status}\n\n"
@@ -453,7 +454,7 @@ def cmd_anti_advertising(message):
                 bot.reply_to(message, "⚠️ Доступные действия: delete, warn, ban.")
                 return
             upsert_anti_advertising(chat_id, action=act)
-            names = {"delete": "удаление", "warn": "предупреждение", "ban": "бан"}
+            names = {"delete": "удаление", "warn": "выговор", "ban": "арест"}
             bot.reply_to(message, f"⚙️ Действие: <b>{names[act]}</b>.")
         else:
             bot.reply_to(message, "⚠️ Неверная команда. Используйте <code>/antiadvertising</code> без аргументов для справки.")
@@ -471,7 +472,7 @@ def cmd_addadmin(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/addadmin @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
@@ -480,7 +481,7 @@ def cmd_addadmin(message):
         else:
             set_role(target_id, "admin")
         add_log(message.from_user.id, "addadmin", target_id)
-        bot.reply_to(message, f"⚙️ {disp} назначен <b>администратором</b>.")
+        bot.reply_to(message, f"⚙️ {disp} назначен <b>комиссаром</b>.")
     except Exception as e:
         print(f"[/addadmin] {e}")
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
@@ -495,7 +496,7 @@ def cmd_removeadmin(message):
         target_id, disp, _ = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/removeadmin @user</code>\n💡 Или ответьте на сообщение пользователя.")
             return
@@ -504,7 +505,7 @@ def cmd_removeadmin(message):
             return
         set_role(target_id, "user")
         add_log(message.from_user.id, "removeadmin", target_id)
-        bot.reply_to(message, f"✅ {disp} теперь обычный <b>пользователь</b>.")
+        bot.reply_to(message, f"✅ {disp} разжалован в <b>граждане</b>.")
     except Exception as e:
         print(f"[/removeadmin] {e}")
         bot.reply_to(message, "❌ Не удалось выполнить команду.")
@@ -519,7 +520,7 @@ def cmd_setrole(message):
         target_id, disp, rest = extract_target(message)
         if target_id is None:
             if disp == _TARGET_NOT_FOUND:
-                bot.reply_to(message, "⚠️ Пользователь не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
+                bot.reply_to(message, "⚠️ Товарищ не найден.\n💡 Убедитесь, что он писал боту, или ответьте на его сообщение.")
             else:
                 bot.reply_to(message, "⚠️ <code>/setrole @user роль</code>\n💡 Или ответьте на сообщение пользователя.")
             return
@@ -581,13 +582,13 @@ def cmd_stats(message):
         s = get_stats()
         bot.reply_to(
             message,
-            "📊 <b>Статистика бота</b>\n\n"
+            "📊 <b>Статистика НКВД</b>\n\n"
             f"👥 Всего пользователей: <b>{s['users']}</b>\n"
             f"👑 Владельцев: <b>{s['owner']}</b>\n"
-            f"⚙️ Администраторов: <b>{s['admin']}</b>\n"
-            f"🛡 Модераторов: <b>{s['moderator']}</b>\n"
-            f"👤 Обычных: <b>{s['user']}</b>\n"
-            f"⚠️ Предупреждений: <b>{s['warnings']}</b>\n"
+            f"⚙️ Комиссаров: <b>{s['admin']}</b>\n"
+            f"🛡 Надзирателей: <b>{s['moderator']}</b>\n"
+            f"👤 Граждан: <b>{s['user']}</b>\n"
+            f"⚠️ Выговоров: <b>{s['warnings']}</b>\n"
             f"📜 Записей в логах: <b>{s['logs']}</b>",
         )
     except Exception as e:
@@ -668,12 +669,12 @@ def handle_anti_advertising(message):
                     bot.ban_chat_member(chat_id, uid)
                     clear_warnings(uid)
                     add_log(uid, "auto-ban", uid, "Реклама")
-                    bot.send_message(chat_id, f"🔨 {name} забанен за рекламу.")
+                    bot.send_message(chat_id, f"🔨 {name} арестован за антисоветскую пропаганду.")
                 except Exception:
                     pass
             else:
                 add_log(uid, "auto-warn", uid, "Реклама")
-                bot.send_message(chat_id, f"⚠️ {name} — предупреждение за рекламу (<b>{total}/{config.WARN_LIMIT}</b>).")
+                bot.send_message(chat_id, f"⚠️ {name} — выговор за антисоветскую пропаганду (<b>{total}/{config.WARN_LIMIT}</b>).")
 
     except Exception as e:
         print(f"[anti_advertising_handler] {e}")

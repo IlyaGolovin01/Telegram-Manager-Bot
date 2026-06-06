@@ -12,9 +12,9 @@ from database import (
 ROLES = {"user": 1, "moderator": 2, "admin": 3, "owner": 4}
 VALID_ROLES = set(ROLES.keys())
 ROLE_TITLES = {
-    "user": "👤 Пользователь",
-    "moderator": "🛡 Модератор",
-    "admin": "⚙️ Администратор",
+    "user": "👤 Гражданин",
+    "moderator": "🛡 Надзиратель",
+    "admin": "⚙️ Комиссар",
     "owner": "👑 Владелец",
 }
 
@@ -71,7 +71,7 @@ def antispam(user_id):
 
 def require(message, min_role):
     if not has_permission(message.from_user.id, min_role):
-        bot.reply_to(message, "⛔️ <b>Недостаточно прав</b> для этой команды.")
+        bot.reply_to(message, "⛔️ <b>Недостаточно полномочий</b> для этой команды.")
         return False
     return True
 
@@ -147,14 +147,14 @@ def build_help(role):
              "/help — список команд",
              "/profile — профиль"]
     if role_level(role) >= ROLES["moderator"]:
-        lines += ["\n<b>Модератор и выше:</b>",
+        lines += ["\n<b>Надзиратель и выше:</b>",
                   "/mute @user время причина",
                   "/unmute @user",
                   "/warn @user причина",
                   "/unwarn @user",
                   "/warnings @user"]
     if role_level(role) >= ROLES["admin"]:
-        lines += ["\n<b>Администратор и выше:</b>",
+        lines += ["\n<b>Комиссар и выше:</b>",
                   "/ban @user время причина",
                   "/unban @user",
                   "/kick @user причина",
